@@ -1,0 +1,289 @@
+public class MainActivity extends AppCompatActivity {
+
+    private ImageView rabbitImage;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        rabbitImage = findViewById(R.id.rabbit_image);
+        rabbitImage.setImageResource(R.drawable.rabbit);
+    }
+}
+public class GameScene extends SurfaceView implements SurfaceHolder.Callback {
+
+    private GameThread gameThread;
+    private Rabbit rabbit;
+    private ObstacleManager obstacleManager;
+    private Score score;
+
+    public GameScene(Context context) {
+        super(context);
+
+        // инициализация объектов
+        getHolder().addCallback(this);
+        gameThread = new GameThread(getHolder(), this);
+        rabbit = new Rabbit(getResources());
+        obstacleManager = new ObstacleManager(getResources());
+        score = new Score(getResources());
+    }
+
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
+        gameThread.setRunning(true);
+        gameThread.start();
+    }
+
+    @Override
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+        // код, который выполняется при изменении размеров игровой сцены
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
+        boolean retry = true;
+        while (retry) {
+            try {
+                gameThread.setRunning(false);
+                gameThread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            retry = false;
+        }
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        // код, который выполняется при касании экрана
+        return super.onTouchEvent(event);
+    }
+
+    public void update() {
+        rabbit.update();
+        obstacleManager.update();
+        if (obstacleManager.collides(rabbit)) {
+            // код, который выполняется при столкновении с препятствием
+        } else {
+            score.update();
+        }
+    }
+
+    @Override
+    public void draw(Canvas canvas) {
+        super.draw(canvas);
+        canvas.drawColor(Color.WHITE);
+        rabbit.draw(canvas);
+        obstacleManager.draw(canvas);
+        score.draw(canvas);
+    }
+}
+
+public class GameThread extends Thread {
+
+    private SurfaceHolder surfaceHolder;
+    private GameScene gameScene;
+    private boolean running;
+
+    public GameThread(SurfaceHolder surfaceHolder, GameScene gameScene) {
+        this.surfaceHolder = surfaceHolder;
+        this.gameScene = gameScene;
+    }
+
+    public void setRunning(boolean running) {
+        this.running = running;
+    }
+
+    @Override
+    public void run() {
+        while (running) {
+            Canvas canvas = null;
+            try {
+                canvas = surfaceHolder.lockCanvas();
+                synchronized (surfaceHolder) {
+                    gameScene.update();
+                    gameScene.draw(canvas);
+                }
+            } finally {
+                if (canvas != null) {
+                    surfaceHolder.unlockCanvasAndPost(canvas);
+                }
+            }
+        }
+    }
+}
+    private float rabbitY; // позиция кролика по оси Y
+    private float rabbitVelocity = 0; // скорость кролика
+    private float rabbitJumpHeight = -30; // высота прыжка кролика
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (event.getAction() == MotionEvent.ACTION_DOWN) {
+            rabbitVelocity = rabbitJumpHeight;
+        }
+        return true;
+    }
+
+    private void updateGame() {
+        // обновляем скорость кролика в зависимости от времени и гравитации
+        rabbitVelocity += 2;
+        rabbitY += rabbitVelocity;
+
+        // проверяем столкновение с верхней или нижней границей экрана
+        if (rabbitY > screenHeight) {
+            rabbitY = screenHeight;
+            rabbitVelocity = 0;
+        } else if (rabbitY < 0) {
+            rabbitY = 0;
+            rabbitVelocity = 0;
+        }
+
+        // проверяем столкновение с препятствиями
+        for (Rect obstacle : obstacles) {
+            if (obstacle.intersect(rabbitX, rabbitY, rabbitX + rabbitWidth, rabbitY + rabbitHeight)) {
+                gameOver();
+                return;
+            }
+        }
+
+        // обновляем позицию кролика
+        rabbitImage.setX(rabbitX);
+        rabbitImage.setY(rabbitY);
+
+        // обновляем позиции препятствий
+        for (Rect obstacle : obstacles) {
+            obstacle.left -= obstacleSpeed;
+            obstacle.right -= obstacleSpeed;
+
+            // если препятствие ушло за границу экрана, перемещаем его в конец
+            if (obstacle.right < 0) {
+                int newLeft = screenWidth + obstacleMargin;
+                int newRight = newLeft + obstacleWidth;
+                int newTop = (int) (Math.random() * (screenHeight - obstacleGap - 2 * obstacleMargin)) + obstacleMargin;
+                int newBottom = newTop + obstacleHeight;
+                obstacle.set(newLeft, newTop, newRight, newBottom);
+            }
+
+            // обновляем позицию препятствия на экране
+            obstacleImageList.get(obstacles.indexOf(obstacle)).setX(obstacle.left);
+            obstacleImageList.get(obstacles.indexOf(obstacle)).setY(obstacle.top);
+        }
+
+        // обновляем счетчик очков
+        score += 1;
+        scoreTextView.setText("Score: " + score);
+    }
+
+    private void startGame() {
+        // создаем таймер для обновления игрового экрана
+        Timer timer = new Timer();
+        timer.schedule(new
+
+        @Override
+        public boolean onTouchEvent(MotionEvent event) {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                bunny.jump();
+                return true;
+            }
+            return super.onTouchEvent(event);
+        }
+
+        public void jump() {
+            velocity = -20;
+        }
+        public void update() {
+            velocity += gravity;
+            y += velocity;
+
+            if (y > maxY) {
+                y = maxY;
+                velocity = 0;
+            }
+
+            if (y < minY) {
+                y = minY;
+                velocity = 0;
+            }
+        }
+
+        @Override
+        public void run() {
+            while (running) {
+                Canvas canvas = null;
+                try {
+                    canvas = surfaceHolder.lockCanvas();
+                    synchronized (surfaceHolder) {
+                        gameView.update();
+                        gameView.draw(canvas);
+                    }
+                } finally {
+                    if (canvas != null) {
+                        surfaceHolder.unlockCanvasAndPost(canvas);
+                    }
+                }
+            }
+        }
+
+        private int score = 0;
+        private boolean isCollided = false;
+
+...
+
+        private void checkCollision() {
+            Rect rabbitRect = new Rect(rabbitX, rabbitY, rabbitX + rabbitWidth, rabbitY + rabbitHeight);
+            for (Obstacle obstacle : obstacles) {
+                Rect obstacleRect = new Rect(obstacle.x, obstacle.y, obstacle.x + obstacle.width, obstacle.y + obstacle.height);
+                if (rabbitRect.intersect(obstacleRect)) {
+                    isCollided = true;
+                    break;
+                }
+            }
+        }
+
+        private void checkScore() {
+            for (Obstacle obstacle : obstacles) {
+                if (obstacle.x + obstacle.width < rabbitX && !obstacle.isScored) {
+                    obstacle.isScored = true;
+                    score++;
+                }
+            }
+        }
+
+...
+
+        private void gameLoop() {
+            while (isPlaying) {
+                update();
+                draw();
+                checkCollision();
+                checkScore();
+                if (isCollided) {
+                    gameOver();
+                    break;
+                }
+            }
+        }
+
+        private class Obstacle {
+            public int x, y;
+            public int width, height;
+            public boolean isScored = false;
+
+            public Obstacle(int x, int y, int width, int height) {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+            }
+        }
+
+        private ArrayList<Obstacle> obstacles = new ArrayList<>();
+
+...
+
+        private void initializeGame() {
+    ...
+            obstacles.add(new Obstacle(startX, startY, obstacleWidth, obstacleHeight));
+    ...
+        }
